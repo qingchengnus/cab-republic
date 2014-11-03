@@ -19,9 +19,9 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/users/signin", SignInHandler).Methods("POST")
-	// r.HandleFunc("/users", UpdatePreferenceHandler).Methods("POST").Headers("Authorization")
-	// r.HandleFunc("/intentions", CreateIntentionHandler).Methods("POST").Headers("Authorization")
-	// r.HandleFunc("/matchings", FindMatchHandler).Methods("GET").Headers("Authorization")
+	r.HandleFunc("/users", UpdatePreferenceHandler).Methods("PUT")
+	// r.HandleFunc("/intentions", CreateIntentionHandler).Methods("POST")
+	// r.HandleFunc("/matchings", FindMatchHandler).Methods("GET")
 
 	s := &http.Server{
 		Addr:           ":8081",
@@ -92,4 +92,32 @@ type user struct {
 	Age_max      int
 	Gender       int
 	Access_token string
+}
+
+func UpdatePreferenceHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	token := request.Header["Authorization"][0]
+	err := request.ParseForm()
+
+	if err != nil {
+		// Handle error
+		fmt.Println(err)
+	}
+	// r.PostForm is a map of our POST form values
+	u := new(updateInfo)
+	err = decoder.Decode(u, request.PostForm)
+
+	result := database.UpdateUser(u.Age_min, u.Age_max, u.Gender, token)
+
+	if result {
+		responseWriter.WriteHeader(200)
+	} else {
+		responseWriter.WriteHeader(401)
+	}
+
+}
+
+type updateInfo struct {
+	Age_min int
+	Age_max int
+	Gender  int
 }

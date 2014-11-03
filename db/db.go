@@ -97,6 +97,38 @@ func LogIn(email string, password string) (bool, int, int, int, string) {
 
 }
 
+func UpdateUser(ageMin int, ageMax int, gender int, token string) bool {
+	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
+	if err != nil {
+		log.Fatal("Cannot connect to the database server.")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Connection failed.")
+	}
+
+	defer db.Close()
+	var id int
+	err = db.QueryRow("SELECT id FROM user WHERE access_token=?", token).Scan(&id)
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Println("No such user")
+		return false
+	case err != nil:
+		fmt.Println(err)
+		return false
+	default:
+		_, err := db.Exec("UPDATE user SET age_min=? , age_max=? , gender=? WHERE id=?", ageMin, ageMax, gender, id)
+		if err == nil {
+			return true
+		} else {
+			fmt.Println(err)
+			return false
+		}
+	}
+}
+
 func openDB() error {
 	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
 	if err != nil {
