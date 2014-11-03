@@ -8,6 +8,7 @@ import "log"
 import "time"
 import "github.com/gorilla/schema"
 import "encoding/json"
+import "strings"
 
 var decoder = schema.NewDecoder()
 
@@ -21,7 +22,7 @@ func main() {
 	r.HandleFunc("/users/signin", SignInHandler).Methods("POST")
 	r.HandleFunc("/users", UpdatePreferenceHandler).Methods("PUT")
 	r.HandleFunc("/intentions", CreateIntentionHandler).Methods("POST")
-	// r.HandleFunc("/matchings", FindMatchHandler).Methods("GET")
+	r.HandleFunc("/matchings", FindMatchHandler).Methods("GET")
 
 	s := &http.Server{
 		Addr:           ":8081",
@@ -51,14 +52,14 @@ func SignInHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		// Handle error
 	}
 
-	result, ageMin, ageMax, gender, accessToken := database.LogIn(request.FormValue("email"), request.FormValue("password"))
+	result, ageMin, ageMax, genderPreference, accessToken := database.LogIn(request.FormValue("email"), request.FormValue("password"))
 
 	if result {
 		u := user{
-			Age_min:      ageMin,
-			Age_max:      ageMax,
-			Gender:       gender,
-			Access_token: accessToken,
+			Age_min:          ageMin,
+			Age_max:          ageMax,
+			GenderPreference: genderPreference,
+			Access_token:     accessToken,
 		}
 		resp := signInResponse{
 			User: u,
@@ -86,12 +87,10 @@ type signInResponse struct {
 }
 
 type user struct {
-	Email        string
-	Password     string
-	Age_min      int
-	Age_max      int
-	Gender       int
-	Access_token string
+	Age_min          int
+	Age_max          int
+	GenderPreference int
+	Access_token     string
 }
 
 func UpdatePreferenceHandler(responseWriter http.ResponseWriter, request *http.Request) {
@@ -106,7 +105,7 @@ func UpdatePreferenceHandler(responseWriter http.ResponseWriter, request *http.R
 	u := new(updateInfo)
 	err = decoder.Decode(u, request.PostForm)
 
-	result := database.UpdateUser(u.Age_min, u.Age_max, u.Gender, token)
+	result := database.UpdateUser(u.Age_min, u.Age_max, u.Gender_preference, token)
 
 	if result {
 		responseWriter.WriteHeader(200)
@@ -117,9 +116,9 @@ func UpdatePreferenceHandler(responseWriter http.ResponseWriter, request *http.R
 }
 
 type updateInfo struct {
-	Age_min int
-	Age_max int
-	Gender  int
+	Age_min           int
+	Age_max           int
+	Gender_preference int
 }
 
 func CreateIntentionHandler(responseWriter http.ResponseWriter, request *http.Request) {
@@ -146,4 +145,32 @@ func CreateIntentionHandler(responseWriter http.ResponseWriter, request *http.Re
 type intention struct {
 	destination_latitude  float64
 	destination_longitude float64
+}
+
+func FindMatchHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	token := request.Header["Authorization"][0]
+	q := request.URL.Query()
+	emailsString := q["emails"][0]
+	emails := strings.Split(emailsString, "$")
+
+	result, email, point := database.FindMatch(emails, token)
+	if result {
+		m := match{
+			Email:           email,
+			Pickup_location: point,
+		}
+
+		b, err := json.Marshal(m)
+		if err != nil {
+			fmt.Println("error:", err)
+		}
+		responseWriter.Write(b)
+	} else {
+		responseWriter.WriteHeader(404)
+	}
+}
+
+type match struct {
+	Email           string
+	Pickup_location string
 }

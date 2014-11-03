@@ -29,7 +29,7 @@ func InitializeDatabase() error {
 		log.Fatal(err)
 	}
 
-	_, err = db.Query("CREATE TABLE IF NOT EXISTS user (id INT(11) NOT NULL AUTO_INCREMENT, email VARCHAR(31) UNIQUE, password VARCHAR(63), age_min TINYINT(8), age_max TINYINT(8), gender TINYINT(2), access_token VARCHAR(63), PRIMARY KEY(id))")
+	_, err = db.Query("CREATE TABLE IF NOT EXISTS user (id INT(11) NOT NULL AUTO_INCREMENT, email VARCHAR(31) UNIQUE, password VARCHAR(63), age_min TINYINT(8), age_max TINYINT(8), gender_preference TINYINT(2), access_token VARCHAR(63), PRIMARY KEY(id))")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func IsInitialized(db *sql.DB) bool {
 func LogIn(email string, password string) (bool, int, int, int, string) {
 	var ageMin int
 	var ageMax int
-	var gender int
+	var genderPreference int
 	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
 	if err != nil {
 		log.Fatal("Cannot connect to the database server.")
@@ -77,7 +77,7 @@ func LogIn(email string, password string) (bool, int, int, int, string) {
 	}
 	defer db.Close()
 
-	err = db.QueryRow("SELECT age_min, age_max, gender FROM user WHERE email=? and password=?", email, password).Scan(&ageMin, &ageMax, &gender)
+	err = db.QueryRow("SELECT age_min, age_max, gender_preference FROM user WHERE email=? and password=?", email, password).Scan(&ageMin, &ageMax, &genderPreference)
 	switch {
 	case err == sql.ErrNoRows:
 		return false, -1, -1, -1, ""
@@ -89,7 +89,7 @@ func LogIn(email string, password string) (bool, int, int, int, string) {
 		accessToken := base64.URLEncoding.EncodeToString(sh.Sum(nil))
 		_, err := db.Exec("UPDATE user SET access_token=? WHERE email=?", accessToken, email)
 		if err == nil {
-			return true, ageMin, ageMax, gender, accessToken
+			return true, ageMin, ageMax, genderPreference, accessToken
 		} else {
 			return false, -3, -3, -3, ""
 		}
@@ -158,6 +158,50 @@ func CreateIntention(latitude float64, longitude float64, token string) bool {
 			fmt.Println(err)
 			return false
 		}
+	}
+}
+
+func FindMatch(emails []string, token string) (bool, string, string) {
+	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
+	if err != nil {
+		log.Fatal("Cannot connect to the database server.")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Connection failed.")
+	}
+
+	defer db.Close()
+	var id int
+	var longitude float64
+	var latitude float64
+	err = db.QueryRow("SELECT id FROM user WHERE access_token=?", token).Scan(&id)
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Println("No such user")
+		return false, "", ""
+	case err != nil:
+		fmt.Println(err)
+		return false, "", ""
+	default:
+		err = db.QueryRow("SELECT destination_latitude, destination_longitude FROM intention WHERE user_id=?", id).Scan(&latitude, &longitude)
+		if err == nil {
+			var latitude1 float64
+			var longitude1 float64
+			var id1 int
+			for _, email := range emails {
+				err = db.QueryRow("SELECT id FROM user WHERE email=?", email).Scan(&id1)
+				if err == nil {
+					err = db.QueryRow("SELECT destination_latitude, destination_longitude FROM intention WHERE user_id=?", id1).Scan(&latitude1, &longitude1)
+					if err == nil {
+						return true, email, "COM1"
+					}
+				}
+			}
+		}
+
+		return false, "", ""
 	}
 }
 
