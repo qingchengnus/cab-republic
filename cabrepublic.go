@@ -56,10 +56,10 @@ func SignInHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	if result {
 		u := user{
-			Age_min:          ageMin,
-			Age_max:          ageMax,
-			GenderPreference: genderPreference,
-			Access_token:     accessToken,
+			Age_min:           ageMin,
+			Age_max:           ageMax,
+			Gender_preference: genderPreference,
+			Access_token:      accessToken,
 		}
 		resp := signInResponse{
 			User: u,
@@ -87,10 +87,10 @@ type signInResponse struct {
 }
 
 type user struct {
-	Age_min          int
-	Age_max          int
-	GenderPreference int
-	Access_token     string
+	Age_min           int
+	Age_max           int
+	Gender_preference int
+	Access_token      string
 }
 
 func UpdatePreferenceHandler(responseWriter http.ResponseWriter, request *http.Request) {

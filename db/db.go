@@ -8,6 +8,7 @@ import "hash"
 import "time"
 import "encoding/base64"
 import "fmt"
+import "math"
 
 var sh hash.Hash = sha1.New()
 
@@ -195,7 +196,31 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 				if err == nil {
 					err = db.QueryRow("SELECT destination_latitude, destination_longitude FROM intention WHERE user_id=?", id1).Scan(&latitude1, &longitude1)
 					if err == nil {
-						return true, email, "COM1"
+						rows, err := db.Query("SELECT name, longitude, latitude FROM pickup_location")
+						if err != nil {
+							log.Fatal(err)
+						}
+						min := 9999.999
+						var minName string
+						var distance float64
+						var name string
+						var lo float64
+						var la float64
+						defer rows.Close()
+						for rows.Next() {
+							if err = rows.Scan(&name, &lo, &la); err != nil {
+								log.Fatal(err)
+							}
+							distance = math.Sqrt(math.Pow(lo-longitude, 2)+math.Pow(la-latitude, 2)) + math.Sqrt(math.Pow(lo-longitude1, 2)+math.Pow(la-latitude1, 2))
+							if distance < min {
+								min = distance
+								minName = name
+							}
+						}
+						if err := rows.Err(); err != nil {
+							log.Fatal(err)
+						}
+						return true, email, minName
 					}
 				}
 			}
