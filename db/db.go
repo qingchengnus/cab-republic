@@ -120,7 +120,7 @@ func UpdateUser(ageMin int, ageMax int, gender int, token string) bool {
 		fmt.Println(err)
 		return false
 	default:
-		_, err := db.Exec("UPDATE user SET age_min=? , age_max=? , gender=? WHERE id=?", ageMin, ageMax, gender, id)
+		_, err := db.Exec("UPDATE user SET age_min=? , age_max=? , gender_preference=? WHERE id=?", ageMin, ageMax, gender, id)
 		if err == nil {
 			return true
 		} else {
