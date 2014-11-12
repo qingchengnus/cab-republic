@@ -23,6 +23,8 @@ func main() {
 	r.HandleFunc("/users", UpdatePreferenceHandler).Methods("PUT")
 	r.HandleFunc("/intentions", CreateIntentionHandler).Methods("POST")
 	r.HandleFunc("/matchings", FindMatchHandler).Methods("GET")
+	r.HandleFunc("/matchings", DeleteMatchHandler).Methods("DELELTE")
+	r.HandleFunc("/matchings/poll", FindMatchHandler).Methods("GET")
 
 	s := &http.Server{
 		Addr:           ":8081",
@@ -175,4 +177,35 @@ func FindMatchHandler(responseWriter http.ResponseWriter, request *http.Request)
 type match struct {
 	Email           string
 	Pickup_location string
+}
+
+func MatchPollHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	token := request.Header["Authorization"][0]
+	result, em := database.PollMatch(token)
+	if result {
+		e := email{
+			Email: em,
+		}
+
+		b, err := json.Marshal(e)
+		if err == nil {
+			responseWriter.Write(b)
+			return
+		}
+	}
+	responseWriter.WriteHeader(404)
+}
+
+type email struct {
+	Email string
+}
+
+func DeleteMatchHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	token := request.Header["Authorization"][0]
+	result := database.DeleteMatch(token)
+	if result {
+		responseWriter.WriteHeader(200)
+	} else {
+		responseWriter.WriteHeader(404)
+	}
 }

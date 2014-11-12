@@ -30,7 +30,7 @@ func InitializeDatabase() error {
 		log.Fatal(err)
 	}
 
-	_, err = db.Query("CREATE TABLE IF NOT EXISTS user (id INT(11) NOT NULL AUTO_INCREMENT, email VARCHAR(31) UNIQUE, password VARCHAR(63), age_min TINYINT(8), age_max TINYINT(8), gender_preference TINYINT(2), access_token VARCHAR(63), PRIMARY KEY(id))")
+	_, err = db.Query("CREATE TABLE IF NOT EXISTS user (id INT(11) NOT NULL AUTO_INCREMENT, email VARCHAR(31) UNIQUE, password VARCHAR(63), age_min TINYINT(8), age_max TINYINT(8), gender_preference TINYINT(2), access_token VARCHAR(63), type TINYINT(1), PRIMARY KEY(id))")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func InitializeDatabase() error {
 		log.Fatal(err)
 	}
 
-	_, err = db.Query("CREATE TABLE IF NOT EXISTS amatch (id INT(11) NOT NULL AUTO_INCREMENT, intention1 INT(11), intention2 INT(11), PRIMARY KEY(id), FOREIGN KEY (intention1) REFERENCES intention(id), FOREIGN KEY (intention2) REFERENCES intention(id))")
+	_, err = db.Query("CREATE TABLE IF NOT EXISTS amatch (id INT(11) NOT NULL AUTO_INCREMENT, intention1 INT(11), intention2 INT(11), PRIMARY KEY(id), FOREIGN KEY (intention1) REFERENCES intention(id) ON DELETE CASCADE, FOREIGN KEY (intention2) REFERENCES intention(id) ON DELETE CASCADE)")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -234,17 +234,86 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 	}
 }
 
-func openDB() error {
+func PollMatch(token string) (bool, string) {
 	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
 	if err != nil {
 		log.Fatal("Cannot connect to the database server.")
-		return err
 	}
 
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("Connection failed.")
-		return err
 	}
-	return nil
+
+	defer db.Close()
+	var id int
+	var intention int
+	var intention1 int
+	var intention2 int
+	err = db.QueryRow("SELECT id FROM user WHERE access_token=?", token).Scan(&id)
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Println("No such user")
+		return false, ""
+	case err != nil:
+		fmt.Println(err)
+		return false, ""
+	default:
+		err = db.QueryRow("SELECT id FROM intention WHERE user_id=?", id).Scan(&intention)
+		if err == nil {
+			err = db.QueryRow("SELECT intention1, intention2 FROM amatch WHERE intention1=? or intention2=?", intention, intention).Scan(&intention1, &intention2)
+			if err == nil {
+				theOtherOne := intention2
+				if intention == intention2 {
+					theOtherOne = intention1
+				}
+				var userId int
+				err = db.QueryRow("SELECT user_id FROM intention WHERE id=?", theOtherOne).Scan(&userId)
+				if err == nil {
+					var userEmail string
+					err = db.QueryRow("SELECT email FROM user WHERE id=?", userId).Scan(&userEmail)
+					if err == nil {
+						return true, userEmail
+					}
+				}
+			}
+		}
+
+		return false, ""
+	}
+}
+
+func DeleteMatch(token string) bool {
+	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
+	if err != nil {
+		log.Fatal("Cannot connect to the database server.")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Connection failed.")
+	}
+
+	defer db.Close()
+	var id int
+	var intention int
+	err = db.QueryRow("SELECT id FROM user WHERE access_token=?", token).Scan(&id)
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Println("No such user")
+		return false
+	case err != nil:
+		fmt.Println(err)
+		return false
+	default:
+		err = db.QueryRow("SELECT id FROM intention WHERE user_id=?", id).Scan(&intention)
+		if err == nil {
+			_, err = db.Exec("DELETE FROM intention WHERE id=?", intention)
+			if err == nil {
+				return true
+			}
+		}
+
+		return false
+	}
 }
