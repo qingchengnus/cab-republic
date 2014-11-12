@@ -137,9 +137,9 @@ func CreateIntentionHandler(responseWriter http.ResponseWriter, request *http.Re
 	// r.PostForm is a map of our POST form values
 	i := new(intention)
 	err = decoder.Decode(i, request.PostForm)
-	fmt.Println(i.destination_longitude)
-	fmt.Println(i.destination_latitude)
-	result := database.CreateIntention(i.destination_latitude, i.destination_longitude, token)
+	fmt.Println(i.Destination_longitude)
+	fmt.Println(i.Destination_latitude)
+	result := database.CreateIntention(i.Destination_latitude, i.Destination_longitude, token)
 
 	if result {
 		responseWriter.WriteHeader(201)
