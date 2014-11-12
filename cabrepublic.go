@@ -128,6 +128,7 @@ type updateInfo struct {
 func CreateIntentionHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	token := request.Header["Authorization"][0]
 	err := request.ParseForm()
+	fmt.Println(request)
 
 	if err != nil {
 		// Handle error
