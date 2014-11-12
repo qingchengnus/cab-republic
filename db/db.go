@@ -311,7 +311,11 @@ func DeleteMatch(token string) bool {
 			_, err = db.Exec("DELETE FROM intention WHERE id=?", intention)
 			if err == nil {
 				return true
+			} else {
+				fmt.Println(err)
 			}
+		} else {
+			fmt.Println(err)
 		}
 
 		return false
