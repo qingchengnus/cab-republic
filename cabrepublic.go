@@ -52,7 +52,7 @@ func SignInHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		// Handle error
 	}
 
-	result, ageMin, ageMax, genderPreference, accessToken := database.LogIn(request.FormValue("email"), request.FormValue("password"))
+	result, ageMin, ageMax, genderPreference, accessToken, userType := database.LogIn(request.FormValue("email"), request.FormValue("password"))
 
 	if result {
 		u := user{
@@ -60,6 +60,7 @@ func SignInHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			Age_max:           ageMax,
 			Gender_preference: genderPreference,
 			Access_token:      accessToken,
+			Type:              userType,
 		}
 		resp := signInResponse{
 			User: u,
@@ -91,6 +92,7 @@ type user struct {
 	Age_max           int
 	Gender_preference int
 	Access_token      string
+	Type              int
 }
 
 func UpdatePreferenceHandler(responseWriter http.ResponseWriter, request *http.Request) {

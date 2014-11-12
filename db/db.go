@@ -57,10 +57,11 @@ func IsInitialized(db *sql.DB) bool {
 	return false
 }
 
-func LogIn(email string, password string) (bool, int, int, int, string) {
+func LogIn(email string, password string) (bool, int, int, int, string, int) {
 	var ageMin int
 	var ageMax int
 	var genderPreference int
+	var userType int
 	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
 	if err != nil {
 		log.Fatal("Cannot connect to the database server.")
@@ -74,25 +75,28 @@ func LogIn(email string, password string) (bool, int, int, int, string) {
 	defer db.Close()
 	if err != nil {
 		log.Fatal(err)
-		return false, 0, 0, 0, ""
+		return false, 0, 0, 0, "", 0
 	}
 	defer db.Close()
 
-	err = db.QueryRow("SELECT age_min, age_max, gender_preference FROM user WHERE email=? and password=?", email, password).Scan(&ageMin, &ageMax, &genderPreference)
+	err = db.QueryRow("SELECT age_min, age_max, gender_preference, type FROM user WHERE email=? and password=?", email, password).Scan(&ageMin, &ageMax, &genderPreference, &userType)
 	switch {
 	case err == sql.ErrNoRows:
-		return false, -1, -1, -1, ""
+		return false, -1, -1, -1, "", 0
 	case err != nil:
 		fmt.Println(err)
-		return false, -2, -2, -2, ""
+		return false, -2, -2, -2, "", 0
 	default:
 		sh.Write([]byte(email + password + time.Now().Format(time.ANSIC)))
 		accessToken := base64.URLEncoding.EncodeToString(sh.Sum(nil))
 		_, err := db.Exec("UPDATE user SET access_token=? WHERE email=?", accessToken, email)
 		if err == nil {
-			return true, ageMin, ageMax, genderPreference, accessToken
+			if userType == 0 {
+				return true, ageMin, ageMax, genderPreference, accessToken, userType
+			}
+			return true, 0, 100, 0, accessToken, userType
 		} else {
-			return false, -3, -3, -3, ""
+			return false, -3, -3, -3, "", 0
 		}
 	}
 
