@@ -23,7 +23,7 @@ func main() {
 	r.HandleFunc("/users", UpdatePreferenceHandler).Methods("PUT")
 	r.HandleFunc("/intentions", CreateIntentionHandler).Methods("POST")
 	r.HandleFunc("/matchings", FindMatchHandler).Methods("GET")
-	r.HandleFunc("/matchings", DeleteMatchHandler).Methods("DELELTE")
+	r.HandleFunc("/matchings", DeleteMatchHandler).Methods("DELETE")
 	r.HandleFunc("/matchings/poll", MatchPollHandler).Methods("GET")
 
 	s := &http.Server{
@@ -149,8 +149,8 @@ func CreateIntentionHandler(responseWriter http.ResponseWriter, request *http.Re
 }
 
 type intention struct {
-	destination_latitude  float64
-	destination_longitude float64
+	Destination_latitude  float64
+	Destination_longitude float64
 }
 
 func FindMatchHandler(responseWriter http.ResponseWriter, request *http.Request) {
