@@ -24,7 +24,7 @@ func main() {
 	r.HandleFunc("/intentions", CreateIntentionHandler).Methods("POST")
 	r.HandleFunc("/matchings", FindMatchHandler).Methods("GET")
 	r.HandleFunc("/matchings", DeleteMatchHandler).Methods("DELELTE")
-	r.HandleFunc("/matchings/poll", FindMatchHandler).Methods("GET")
+	r.HandleFunc("/matchings/poll", MatchPollHandler).Methods("GET")
 
 	s := &http.Server{
 		Addr:           ":8081",
