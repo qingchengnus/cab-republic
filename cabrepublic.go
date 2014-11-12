@@ -183,10 +183,11 @@ type match struct {
 
 func MatchPollHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	token := request.Header["Authorization"][0]
-	result, em := database.PollMatch(token)
+	result, em, p := database.PollMatch(token)
 	if result {
-		e := email{
-			Email: em,
+		e := MatchPollResponse{
+			Email:           em,
+			Pickup_location: p,
 		}
 
 		b, err := json.Marshal(e)
@@ -198,8 +199,9 @@ func MatchPollHandler(responseWriter http.ResponseWriter, request *http.Request)
 	responseWriter.WriteHeader(404)
 }
 
-type email struct {
-	Email string
+type MatchPollResponse struct {
+	Email           string
+	Pickup_location string
 }
 
 func DeleteMatchHandler(responseWriter http.ResponseWriter, request *http.Request) {

@@ -45,7 +45,7 @@ func InitializeDatabase() error {
 		log.Fatal(err)
 	}
 
-	_, err = db.Query("CREATE TABLE IF NOT EXISTS amatch (id INT(11) NOT NULL AUTO_INCREMENT, intention1 INT(11), intention2 INT(11), PRIMARY KEY(id), FOREIGN KEY (intention1) REFERENCES intention(id) ON DELETE CASCADE, FOREIGN KEY (intention2) REFERENCES intention(id) ON DELETE CASCADE)")
+	_, err = db.Query("CREATE TABLE IF NOT EXISTS amatch (id INT(11) NOT NULL AUTO_INCREMENT, intention1 INT(11), intention2 INT(11), pickup_location VARCHAR(31), PRIMARY KEY(id), FOREIGN KEY (intention1) REFERENCES intention(id) ON DELETE CASCADE, FOREIGN KEY (intention2) REFERENCES intention(id) ON DELETE CASCADE)")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -181,6 +181,8 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 	var id int
 	var longitude float64
 	var latitude float64
+	var intention1 int
+	var intention2 int
 	err = db.QueryRow("SELECT id FROM user WHERE access_token=?", token).Scan(&id)
 	switch {
 	case err == sql.ErrNoRows:
@@ -190,7 +192,7 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 		fmt.Println(err)
 		return false, "", ""
 	default:
-		err = db.QueryRow("SELECT destination_latitude, destination_longitude FROM intention WHERE user_id=?", id).Scan(&latitude, &longitude)
+		err = db.QueryRow("SELECT id, destination_latitude, destination_longitude FROM intention WHERE user_id=?", id).Scan(&intention1, &latitude, &longitude)
 		if err == nil {
 			var latitude1 float64
 			var longitude1 float64
@@ -198,7 +200,7 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 			for _, email := range emails {
 				err = db.QueryRow("SELECT id FROM user WHERE email=?", email).Scan(&id1)
 				if err == nil {
-					err = db.QueryRow("SELECT destination_latitude, destination_longitude FROM intention WHERE user_id=?", id1).Scan(&latitude1, &longitude1)
+					err = db.QueryRow("SELECT id, destination_latitude, destination_longitude FROM intention WHERE user_id=?", id1).Scan(&intention2, &latitude1, &longitude1)
 					if err == nil {
 						rows, err := db.Query("SELECT name, longitude, latitude FROM pickup_location")
 						if err != nil {
@@ -224,7 +226,10 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 						if err := rows.Err(); err != nil {
 							log.Fatal(err)
 						}
-						return true, email, minName
+						_, err = db.Exec("INSERT INTO amatch (intention1, intention2, pickup_location) VALUES(?, ?, ?)", intention1, intention2, minName)
+						if err == nil {
+							return true, email, minName
+						}
 					}
 				}
 			}
@@ -234,7 +239,7 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 	}
 }
 
-func PollMatch(token string) (bool, string) {
+func PollMatch(token string) (bool, string, string) {
 	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
 	if err != nil {
 		log.Fatal("Cannot connect to the database server.")
@@ -250,18 +255,19 @@ func PollMatch(token string) (bool, string) {
 	var intention int
 	var intention1 int
 	var intention2 int
+	var pickUpLocation string
 	err = db.QueryRow("SELECT id FROM user WHERE access_token=?", token).Scan(&id)
 	switch {
 	case err == sql.ErrNoRows:
 		fmt.Println("No such user")
-		return false, ""
+		break
 	case err != nil:
 		fmt.Println(err)
-		return false, ""
+		break
 	default:
 		err = db.QueryRow("SELECT id FROM intention WHERE user_id=?", id).Scan(&intention)
 		if err == nil {
-			err = db.QueryRow("SELECT intention1, intention2 FROM amatch WHERE intention1=? or intention2=?", intention, intention).Scan(&intention1, &intention2)
+			err = db.QueryRow("SELECT intention1, intention2, pickup_location FROM amatch WHERE intention1=? or intention2=?", intention, intention).Scan(&intention1, &intention2, &pickUpLocation)
 			if err == nil {
 				theOtherOne := intention2
 				if intention == intention2 {
@@ -273,14 +279,13 @@ func PollMatch(token string) (bool, string) {
 					var userEmail string
 					err = db.QueryRow("SELECT email FROM user WHERE id=?", userId).Scan(&userEmail)
 					if err == nil {
-						return true, userEmail
+						return true, userEmail, pickUpLocation
 					}
 				}
 			}
 		}
-
-		return false, ""
 	}
+	return false, "", ""
 }
 
 func DeleteMatch(token string) bool {
