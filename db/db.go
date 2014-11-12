@@ -296,7 +296,6 @@ func DeleteMatch(token string) bool {
 
 	defer db.Close()
 	var id int
-	var intention int
 	err = db.QueryRow("SELECT id FROM user WHERE access_token=?", token).Scan(&id)
 	switch {
 	case err == sql.ErrNoRows:
@@ -306,18 +305,12 @@ func DeleteMatch(token string) bool {
 		fmt.Println(err)
 		return false
 	default:
-		err = db.QueryRow("SELECT id FROM intention WHERE user_id=?", id).Scan(&intention)
+		_, err = db.Exec("DELETE FROM intention WHERE user_id=?", id)
 		if err == nil {
-			_, err = db.Exec("DELETE FROM intention WHERE id=?", intention)
-			if err == nil {
-				return true
-			} else {
-				fmt.Println(err)
-			}
+			return true
 		} else {
 			fmt.Println(err)
 		}
-
 		return false
 	}
 }
