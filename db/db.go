@@ -198,6 +198,7 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 			var longitude1 float64
 			var id1 int
 			for _, email := range emails {
+				fmt.Println(email)
 				err = db.QueryRow("SELECT id FROM user WHERE email=?", email).Scan(&id1)
 				if err == nil && id1 != id {
 					err = db.QueryRow("SELECT id, destination_latitude, destination_longitude FROM intention WHERE user_id=?", id1).Scan(&intention2, &latitude1, &longitude1)
@@ -229,8 +230,14 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 						_, err = db.Exec("INSERT INTO amatch (intention1, intention2, pickup_location) VALUES(?, ?, ?)", intention1, intention2, minName)
 						if err == nil {
 							return true, email, minName
+						} else {
+							fmt.Println(err)
 						}
+					} else {
+						fmt.Println(err)
 					}
+				} else {
+					fmt.Println(err)
 				}
 			}
 		}
