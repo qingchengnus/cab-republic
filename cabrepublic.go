@@ -213,3 +213,22 @@ func DeleteMatchHandler(responseWriter http.ResponseWriter, request *http.Reques
 		responseWriter.WriteHeader(404)
 	}
 }
+
+func GetAllMatchHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	result := database.GetAllMatch()
+	e := AllMatchResponse{
+		Emails: result,
+	}
+
+	b, err := json.Marshal(e)
+	if err == nil {
+		responseWriter.Write(b)
+		return
+	}
+
+	responseWriter.WriteHeader(404)
+}
+
+type AllMatchResponse struct {
+	Emails string
+}

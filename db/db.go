@@ -9,6 +9,7 @@ import "time"
 import "encoding/base64"
 import "fmt"
 import "math"
+import "strings"
 
 var sh hash.Hash = sha1.New()
 
@@ -324,5 +325,46 @@ func DeleteMatch(token string) bool {
 			fmt.Println(err)
 		}
 		return false
+	}
+}
+
+func GetAllMatch() string {
+	db, err := sql.Open("mysql", "root:@/CAB_REPUBLIC")
+	if err != nil {
+		log.Fatal("Cannot connect to the database server.")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Connection failed.")
+	}
+
+	defer db.Close()
+	rows, err := db.Query("SELECT pickup_location FROM amatch")
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Println("No such user")
+		return ""
+	case err != nil:
+		fmt.Println(err)
+		return ""
+	default:
+		result := ""
+		defer rows.Close()
+		for rows.Next() {
+			var location string
+			if err := rows.Scan(&location); err != nil {
+				log.Fatal(err)
+			}
+			result += location
+			result += "-"
+		}
+		if err := rows.Err(); err != nil {
+			log.Fatal(err)
+		}
+		if len(result) != 0 {
+			result = strings.TrimSuffix(result, "-")
+		}
+		return result
 	}
 }
