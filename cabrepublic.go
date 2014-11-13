@@ -25,6 +25,7 @@ func main() {
 	r.HandleFunc("/matchings", FindMatchHandler).Methods("GET")
 	r.HandleFunc("/matchings", DeleteMatchHandler).Methods("DELETE")
 	r.HandleFunc("/matchings/poll", MatchPollHandler).Methods("GET")
+	r.HandleFunc("matchings/all", GetAllMatchHandler).Methods("GET")
 
 	s := &http.Server{
 		Addr:           ":8081",
