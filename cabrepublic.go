@@ -157,7 +157,7 @@ func FindMatchHandler(responseWriter http.ResponseWriter, request *http.Request)
 	token := request.Header["Authorization"][0]
 	q := request.URL.Query()
 	emailsString := q["emails"][0]
-	emails := strings.Split(emailsString, "$")
+	emails := strings.Split(emailsString, "-")
 
 	result, email, point := database.FindMatch(emails, token)
 	if result {
