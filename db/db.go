@@ -199,7 +199,7 @@ func FindMatch(emails []string, token string) (bool, string, string) {
 			var id1 int
 			for _, email := range emails {
 				err = db.QueryRow("SELECT id FROM user WHERE email=?", email).Scan(&id1)
-				if err == nil {
+				if err == nil && id1 != id {
 					err = db.QueryRow("SELECT id, destination_latitude, destination_longitude FROM intention WHERE user_id=?", id1).Scan(&intention2, &latitude1, &longitude1)
 					if err == nil {
 						rows, err := db.Query("SELECT name, longitude, latitude FROM pickup_location")
